@@ -9,6 +9,8 @@ import { eq, and } from 'drizzle-orm';
 
 import job from "./config/cron.js";
 
+import { Clerk } from "@clerk/clerk-sdk-node";
+const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const app = express();
 const PORT = ENV.PORT || 5001;
@@ -87,14 +89,20 @@ app.delete("/api/usuarios/:clerkId", async (req, res) => {
     try {
         const { clerkId } = req.params;
 
-        await db.delete(usuarioTable).where(eq(usuarioTable.clerkId, clerkId));
+        await clerk.users.deleteUser(clerkId); // Deleta no Clerk
+
+        await db.delete(usuarioTable)           // Deleta no banco
+            .where(eq(usuarioTable.clerkId, clerkId));
 
         res.status(200).json({ message: "Usuário removido com sucesso" });
+
     } catch (error) {
         console.log("Erro ao deletar usuário:", error);
         res.status(500).json({ error: "Erro interno no servidor" });
     }
 });
+
+
 
 
 

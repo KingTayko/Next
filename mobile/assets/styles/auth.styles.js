@@ -98,21 +98,24 @@ export const authStyles = StyleSheet.create({
   },
 
   bottomBanner: {
-    width: "113%",
-    height: 80,
+    width: "117%",
+    height: 90,
     backgroundColor: "#D6FF41",
     justifyContent: "center",
     alignItems: "center",
     borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    borderTopRightRadius: 52,
     position: "absolute",
     bottom: 0,
     left: 0,
+    paddingTop: -110,
+
   },
 
   bottomText: {
     fontSize: 15,
     fontWeight: "600",
     color: "#1A1A1A",
+    paddingBottom: 25,
   },
 });
