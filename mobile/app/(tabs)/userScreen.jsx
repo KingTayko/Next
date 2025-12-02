@@ -118,7 +118,7 @@ const UserScreen = () => {
               // Logout após excluir no backend
               await signOut();
 
-              router.replace("/");
+              router.replace("../(auth)/sign-In");
 
             } catch (err) {
               console.log(err);

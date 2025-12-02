@@ -148,4 +148,14 @@ export const HomeStyles = StyleSheet.create({
     color: "#FFFFFF",
     textTransform: 'uppercase',
   },
+
+  searchInput: {
+  backgroundColor: "#FFF",
+  padding: 12,
+  borderRadius: 10,
+  marginVertical: 15,
+  borderWidth: 1,
+  borderColor: "#DDD",
+  fontSize: 16,
+},
 });
