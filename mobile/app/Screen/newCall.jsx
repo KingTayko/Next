@@ -151,83 +151,81 @@ const NewCallScreen = () => {
   };
 
   const handleFinishCall = async () => {
-    if (description.trim().length === 0) {
-      Alert.alert('Erro', 'A descrição não pode estar vazia.');
+  if (description.trim().length === 0) {
+    Alert.alert('Erro', 'A descrição não pode estar vazia.');
+    return;
+  }
+
+  if (!clerkId) {
+    Alert.alert('Erro', 'Usuário não autenticado.');
+    return;
+  }
+
+  if (time.length !== 5 || time.indexOf(':') !== 2) {
+    Alert.alert('Erro', 'Por favor, insira um horário válido no formato HH:MM.');
+    return;
+  }
+
+  try {
+    const userResponse = await fetch(`${API_URL}/usuarios/by-clerk/${clerkId}`);
+    const userData = await userResponse.json();
+
+    if (!userData?.id) {
+      Alert.alert("Erro", "Não foi possível localizar o usuário no banco.");
       return;
     }
 
-    if (!clerkId) {
-      Alert.alert('Erro', 'Usuário não autenticado.');
-      return;
-    }
+    const idUsuario = userData.id;
 
-    if (time.length !== 5 || time.indexOf(':') !== 2) {
-      Alert.alert('Erro', 'Por favor, insira um horário válido no formato HH:MM.');
-      return;
-    }
+    // ✅ AGORA SEM SEGUNDOS
+    const horarioSQL = time;   // EX: "13:00"
+    const dataSQL = date.toISOString().split("T")[0]; // "2026-03-21"
 
-    try {
-      // 1️⃣ BUSCA O USUÁRIO NO BANCO PELO CLERK ID
-      const userResponse = await fetch(`${API_URL}/usuarios/by-clerk/${clerkId}`);
-      const userData = await userResponse.json();
+    // 3️⃣ VERIFICAÇÃO DE HORÁRIO
+    const checkResponse = await fetch(
+      `${API_URL}/chamadas/check?data=${dataSQL}&horario=${horarioSQL}`
+    );
 
-      if (!userData?.id) {
-        Alert.alert("Erro", "Não foi possível localizar o usuário no banco.");
-        return;
-      }
+    const checkData = await checkResponse.json();
 
-      const idUsuario = userData.id;
-
-      // 2️⃣ FORMATAÇÃO PARA O BANCO
-      const horarioSQL = `${time}:00`;      // "13:00" → "13:00:00"
-      const dataSQL = date.toISOString().split("T")[0]; // "2026-03-21"
-
-      // 3️⃣ VERIFICA SE O HORÁRIO JÁ ESTÁ OCUPADO 🔥
-      const checkResponse = await fetch(
-        `${API_URL}/chamadas/check?data=${dataSQL}&horario=${horarioSQL}`
+    if (checkData.exists) {
+      Alert.alert(
+        "Horário Indisponível",
+        "Já existe um chamado agendado para essa data e horário."
       );
-
-      const checkData = await checkResponse.json();
-
-      if (checkData.exists) {
-        Alert.alert(
-          "Horário Indisponível",
-          "Já existe um chamado agendado para essa data e horário."
-        );
-        return;
-      }
-
-      // 4️⃣ SE TUDO OK → CRIA O CHAMADO
-      const response = await fetch(`${API_URL}/chamadas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          idUsuario,
-          nomeUsuario: userData.nome,
-          descChamada: description,
-          presencial,
-          horario: horarioSQL,
-          data: dataSQL,
-          cepChamada: userData.cep
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.log("Erro API:", result);
-        Alert.alert("Erro", result.error || "Não foi possível criar o chamado");
-        return;
-      }
-
-      Alert.alert("Sucesso", "Chamado criado com sucesso!");
-      router.back();
-
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Erro", "Falha ao conectar ao servidor.");
+      return;
     }
-  };
+
+    // 4️⃣ CRIA O CHAMADO
+    const response = await fetch(`${API_URL}/chamadas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        idUsuario,
+        nomeUsuario: userData.nome,
+        descChamada: description,
+        presencial,
+        horario: horarioSQL,  // "13:00"
+        data: dataSQL,
+        cepChamada: userData.cep
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      Alert.alert("Erro", result.error || "Não foi possível criar o chamado");
+      return;
+    }
+
+    Alert.alert("Sucesso", "Chamado criado com sucesso!");
+    router.back();
+
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Erro", "Falha ao conectar ao servidor.");
+  }
+};
 
 
   return (

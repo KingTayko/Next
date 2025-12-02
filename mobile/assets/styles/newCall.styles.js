@@ -20,13 +20,15 @@ const newCallStyles = StyleSheet.create({
   },
   backButton: {
     padding: 10, // Área de clique
-    marginLeft: 10,
+    marginLeft: -5,
+    paddingTop: 45,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: primaryColor,
-    marginLeft: 5,
+    marginLeft: -8,
+    paddingTop: 35,
   },
   
   // --- Conteúdo Rolável ---
@@ -135,7 +137,7 @@ const newCallStyles = StyleSheet.create({
   // --- Botão Finalizar Chamado (Fixo) ---
   finishButtonContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 55,
     backgroundColor: 'white',
     // Adiciona uma linha sutil acima do botão se o fundo for branco
     borderTopWidth: 1,
