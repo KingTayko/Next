@@ -5,7 +5,7 @@ import { db } from "./config/db.js";
 
 import { usuarioTable, chamadaTable } from "./db/schema.js";
 
-import { eq, and, ilike} from 'drizzle-orm';
+import { like, eq, and, or } from "drizzle-orm";
 
 
 import job from "./config/cron.js";
@@ -408,6 +408,60 @@ app.put("/api/usuario/update/:clerkId", async (req, res) => {
 
 
 //teste
+//pesquisar chamadas por descrição, nome do usuário ou ID do usuário
+app.get("/api/chamadas/search", async (req, res) => {
+  try {
+    const { descricao, nome, idUsuario } = req.query;
+
+    let filtros = [];
+
+    // Buscar por descrição
+    if (descricao) {
+      filtros.push(like(chamadaTable.descChamada, `%${descricao}%`));
+    }
+
+    // Buscar por nome do usuário
+    if (nome) {
+      filtros.push(like(usuarioTable.nome, `%${nome}%`));
+    }
+
+    // Buscar por ID do usuário
+    if (idUsuario) {
+      filtros.push(eq(chamadaTable.idUsuario, Number(idUsuario)));
+    }
+
+    if (filtros.length === 0) {
+      return res.status(400).json({ error: "Nenhum filtro enviado." });
+    }
+
+    const whereClause = filtros.length > 1 ? and(...filtros) : filtros[0];
+
+    const chamadas = await db
+      .select({
+        id: chamadaTable.id,
+        descChamada: chamadaTable.descChamada,
+        presencial: chamadaTable.presencial,
+        horario: chamadaTable.horario,
+        data: chamadaTable.data,
+        cepChamada: chamadaTable.cepChamada,
+        dataCriacao: chamadaTable.dataCriacao,
+        status: chamadaTable.status,
+        dataAtualizacao: chamadaTable.dataAtualizacao,
+        nomeUsuario: usuarioTable.nome,
+      })
+      .from(chamadaTable)
+      .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
+      .where(whereClause);
+
+    res.status(200).json(chamadas);
+  } catch (error) {
+    console.log("Erro ao buscar chamadas:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
+});
+
+
+//teste
 // Buscar chamada específica por ID
 app.get("/api/chamadas/:id", async (req, res) => {
   try {
@@ -486,58 +540,7 @@ app.get("/api/chamadas/check", async (req, res) => {
 });
 
 
-//pesquisar chamadas por descrição, nome do usuário ou ID do usuário
-app.get("/api/chamadas/search", async (req, res) => {
-  try {
-    const { descricao, nome, idUsuario } = req.query;
 
-    let filtros = [];
-
-    // Buscar por descrição
-    if (descricao) {
-      filtros.push(ilike(chamadaTable.descChamada, `%${descricao}%`));
-    }
-
-    // Buscar por nome do usuário
-    if (nome) {
-      filtros.push(ilike(usuarioTable.nome, `%${nome}%`));
-    }
-
-    // Buscar por ID do usuário
-    if (idUsuario) {
-      filtros.push(eq(chamadaTable.idUsuario, Number(idUsuario)));
-    }
-
-    // Nenhum filtro enviado
-    if (filtros.length === 0) {
-      return res.status(400).json({ error: "Nenhum filtro enviado." });
-    }
-
-    const whereClause = filtros.length > 1 ? and(...filtros) : filtros[0];
-
-    const chamadas = await db
-      .select({
-        id: chamadaTable.id,
-        descChamada: chamadaTable.descChamada,
-        presencial: chamadaTable.presencial,
-        horario: chamadaTable.horario,
-        data: chamadaTable.data,
-        cepChamada: chamadaTable.cepChamada,
-        dataCriacao: chamadaTable.dataCriacao,
-        status: chamadaTable.status,
-        dataAtualizacao: chamadaTable.dataAtualizacao,
-        nomeUsuario: usuarioTable.nome,
-      })
-      .from(chamadaTable)
-      .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
-      .where(whereClause);
-
-    res.status(200).json(chamadas);
-  } catch (error) {
-    console.log("Erro ao buscar chamadas:", error);
-    res.status(500).json({ error: "Erro interno no servidor" });
-  }
-});
 
 
 app.listen(PORT, () => {

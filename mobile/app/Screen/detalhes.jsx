@@ -162,6 +162,16 @@ export default function DetalhesChamadaScreen() {
           <Text style={styles.label}>Descrição:</Text>
           <Text style={styles.value}>{chamada.descChamada}</Text>
 
+          {/* 🔥 Mostrar criador — Somente ADMIN */}
+          {usuario?.role === "ADMIN" && (
+            <>
+              <Text style={styles.label}>Criado por:</Text>
+              <Text style={styles.value}>
+                {chamada.nomeUsuario} (ID: {chamada.idUsuario})
+              </Text>
+            </>
+          )}
+
           <Text style={styles.label}>Status:</Text>
           <Text style={styles.value}>{chamada.status}</Text>
 

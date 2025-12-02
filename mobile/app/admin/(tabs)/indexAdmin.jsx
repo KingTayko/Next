@@ -5,8 +5,6 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
-  TextInput,
-  TouchableOpacity,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,7 +24,6 @@ export default function IndexAdmin() {
   const [usuario, setUsuario] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
   const loadUsuarioEChamados = async () => {
     if (!user) return;
@@ -47,7 +44,7 @@ export default function IndexAdmin() {
         return;
       }
 
-      // Buscar TODAS as chamadas
+      // Buscar TODAS as chamadas — igual ao ViaCEP do HomeScreen
       const chamadasRes = await fetch(`${API_URL}/chamadas`);
       if (!chamadasRes.ok) throw new Error("Erro ao buscar chamadas");
       const chamadasData = await chamadasRes.json();
@@ -59,29 +56,6 @@ export default function IndexAdmin() {
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  // FUNÇÃO DE BUSCA
-  const buscarChamadas = async (texto) => {
-    setSearch(texto);
-
-    // se o campo ficar vazio → carrega tudo de novo
-    if (texto.trim() === "") {
-      return loadUsuarioEChamados();
-    }
-
-    try {
-      const url = `${API_URL}/chamadas/search?nome=${texto}&descricao=${texto}&idUsuario=${Number(texto) || ""}`;
-
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Erro ao buscar chamadas");
-
-      const data = await res.json();
-      setChamadas(data);
-    } catch (error) {
-      console.log("Erro ao buscar:", error);
-      Alert.alert("Erro", "Não foi possível realizar a busca.");
     }
   };
 
@@ -126,21 +100,12 @@ export default function IndexAdmin() {
 
           {/* INFO CARD */}
           <View style={HomeStyles.blueCard}>
-            <Text style={HomeStyles.welcomeText}>Painel Administrativo</Text>
+            <Text style={HomeStyles.welcomeText}>
+              Painel Administrativo
+            </Text>
             <Text style={HomeStyles.subtitle}>Chamados Totais</Text>
             <Text style={HomeStyles.counter}>{chamadas?.length ?? 0}</Text>
           </View>
-
-          {/* SEARCH */}
-          <TextInput
-            placeholder="Buscar por descrição, nome ou ID"
-            style={HomeStyles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholderTextColor="black"
-            returnKeyType="search"          // botão do teclado vira "Buscar"
-            onSubmitEditing={() => buscarChamadas(search)}  // dispara ao apertar confirmar
-          />
 
           {/* LISTA */}
           <View style={{ gap: 20, paddingBottom: 120 }}>
