@@ -10,6 +10,8 @@ import { eq, and } from 'drizzle-orm';
 import job from "./config/cron.js";
 
 import { Clerk } from "@clerk/clerk-sdk-node";
+import "dotenv/config";
+
 const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const app = express();
@@ -24,6 +26,8 @@ app.use(express.json());
 app.get("/api/health", (req, res) => {
     res.status(200).json({ sucess: false })
 });
+
+console.log("CLERK SECRET KEY É:", process.env.CLERK_SECRET_KEY);
 
 
 // ------------------- ROTAS USUÁRIO -------------------
