@@ -18,6 +18,7 @@ import { API_URL } from "../../constants/api";
 
 
 
+
 const SignUpScreen = () => {
     const router = useRouter();
     const { isLoaded, signUp, setActive } = useSignUp();
@@ -34,49 +35,58 @@ const SignUpScreen = () => {
 
 
     const handleSignUp = async () => {
-        if (!email || !password) return Alert.alert("Error", "Por favor, preencha todos os campos");
-        if (password.length < 6) return Alert.alert("Error", "A senha deve ter pelo menos 6 caracteres");
+    if (!email || !password) return Alert.alert("Error", "Preencha todos os campos");
+    if (!isLoaded) return;
 
-         if (!isLoaded) return;
+    setLoading(true);
 
-        setLoading(true);
+    try {
+        // 1. Cria o usuário no Clerk
+        const result = await signUp.create({
+            emailAddress: email,
+            password,
+        });
 
-        try {
-          const result = await signUp.create({ emailAddress: email, password });
-    
-          //pega o id do clerk
-          const clerkId = result.createdUserId
+        const clerkId = result.createdUserId;
 
-            {/*criacao do usuario no banco de dados */ }
-            const response = await fetch(`${API_URL}/usuarios`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    nome: name,
-                    clerkId,
-                    cep,
-                    numCasa: numero,
-                    complemento,
-                    email
-                }),
-            });
+        // 2. ***Ativa a sessão imediatamente***
+        await setActive({ session: result.createdSessionId });
 
-            const data = await response.json();
+        // 3. Cria usuário no seu backend
+        const response = await fetch(`${API_URL}/usuarios`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                nome: name,
+                clerkId,
+                cep,
+                numCasa: numero,
+                complemento,
+                email
+            }),
+        });
 
-            console.log(data.id, data.nome);
-            
-            Alert.alert("Success", "Usuario Cadastrado!");
+        const data = await response.json();
+        console.log(data.id, data.nome);
 
-           
+        Alert.alert(
+            "Success",
+            "Usuário cadastrado com sucesso!",
+            [
+                {
+                    text: "OK",
+                    onPress: () => router.replace("/(tabs)"),
+                }
+            ]
+        );
 
-
-        } catch (err) {
-            Alert.alert("Error", err.errors?.[0]?.message || "Failed to create account");
-            console.error(JSON.stringify(err, null, 2));
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (err) {
+        console.error(err);
+        Alert.alert("Error", err.errors?.[0]?.message || "Failed to create account");
+    } finally {
+        setLoading(false);
+    }
+};
 
 
     {/*formatar cep */ }
