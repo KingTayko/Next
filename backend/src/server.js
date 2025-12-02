@@ -5,8 +5,8 @@ import { db } from "./config/db.js";
 
 import { usuarioTable, chamadaTable } from "./db/schema.js";
 
-import { eq, and} from 'drizzle-orm';
-import { ilike } from "drizzle-orm/pg-core";
+import { eq, and, ilike} from 'drizzle-orm';
+
 
 import job from "./config/cron.js";
 
