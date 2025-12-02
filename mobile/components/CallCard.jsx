@@ -11,7 +11,7 @@ export default function CallCard({ chamada }) {
   const statusColor = {
     "EM ANDAMENTO": "#F4A100",
     CANCELADO: "#D9534F",
-    FINALIZADA: "#3CBC8D",
+    FINALIZADO: "#3CBC8D",
   };
 
   const handlePress = () => {

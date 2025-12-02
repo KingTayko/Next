@@ -12,12 +12,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/api";
 import { DetalhesStyles as styles } from "../../assets/styles/detalhes.styles";
-import { useUser } from "@clerk/clerk-expo"; // ⬅ IMPORTANTE
+import { useUser } from "@clerk/clerk-expo";
 
 export default function DetalhesChamadaScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { user } = useUser(); // ⬅ PEGA O USUÁRIO LOGADO (Clerk)
+  const { user } = useUser();
 
   const [chamada, setChamada] = useState(null);
   const [usuario, setUsuario] = useState(null);
@@ -31,21 +31,18 @@ export default function DetalhesChamadaScreen() {
 
   const loadChamada = async () => {
     try {
-      // Buscar chamada
       const response = await fetch(`${API_URL}/chamadas/${id}`);
       if (!response.ok) throw new Error("Erro ao buscar chamada");
 
       const data = await response.json();
       setChamada(data);
 
-      // Buscar usuário logado pelo clerkId
       if (user?.id) {
         const userRes = await fetch(`${API_URL}/usuarios/by-clerk/${user.id}`);
         const userData = await userRes.json();
         setUsuario(userData);
       }
 
-      // Buscar dados do endereço via CEP
       if (data.cepChamada) {
         const cleanCep = data.cepChamada.replace(/\D/g, "");
         const viaCepRes = await fetch(
@@ -65,42 +62,68 @@ export default function DetalhesChamadaScreen() {
 
   const handleCancelar = () => {
     if (chamada.status === "CANCELADO" || chamada.status === "CANCELADA") {
-      Alert.alert(
-        "Chamado já cancelado",
-        "Este chamado já foi cancelado anteriormente."
-      );
+      Alert.alert("Chamado já cancelado", "Este chamado já foi cancelado.");
       return;
     }
 
-    Alert.alert(
-      "Cancelar Chamado",
-      "Tem certeza que deseja cancelar este chamado?",
-      [
-        { text: "Não", style: "cancel" },
-        {
-          text: "Sim",
-          onPress: async () => {
-            try {
-              const response = await fetch(
-                `${API_URL}/chamadas/status/${id}`,
-                {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ status: "CANCELADO" }),
-                }
-              );
+    Alert.alert("Cancelar Chamado", "Tem certeza que deseja cancelar?", [
+      { text: "Não", style: "cancel" },
+      {
+        text: "Sim",
+        onPress: async () => {
+          try {
+            const response = await fetch(`${API_URL}/chamadas/status/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "CANCELADO" }),
+            });
 
-              if (!response.ok) throw new Error("Erro ao cancelar");
+            if (!response.ok) throw new Error("Erro ao cancelar");
 
-              Alert.alert("Sucesso", "Chamado cancelado.");
-              router.back();
-            } catch (error) {
-              Alert.alert("Erro", "Não foi possível cancelar.");
-            }
-          },
+            Alert.alert("Sucesso", "Chamado cancelado.");
+            router.back();
+          } catch {
+            Alert.alert("Erro", "Não foi possível cancelar.");
+          }
         },
-      ]
-    );
+      },
+    ]);
+  };
+
+  // 🔥 FINALIZAR — SOMENTE ADMIN
+  const handleFinalizar = () => {
+    if (usuario?.role !== "ADMIN") {
+      Alert.alert("Acesso negado", "Somente administradores podem finalizar chamados.");
+      return;
+    }
+
+    if (chamada.status === "FINALIZADO") {
+      Alert.alert("Chamado já finalizado", "Este chamado já foi finalizado.");
+      return;
+    }
+
+    Alert.alert("Finalizar Chamado", "Deseja finalizar este chamado?", [
+      { text: "Não", style: "cancel" },
+      {
+        text: "Sim",
+        onPress: async () => {
+          try {
+            const response = await fetch(`${API_URL}/chamadas/status/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "FINALIZADO" }),
+            });
+
+            if (!response.ok) throw new Error("Erro ao finalizar");
+
+            Alert.alert("Sucesso", "Chamado finalizado.");
+            router.back();
+          } catch {
+            Alert.alert("Erro", "Não foi possível finalizar.");
+          }
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -142,7 +165,7 @@ export default function DetalhesChamadaScreen() {
           <Text style={styles.label}>Status:</Text>
           <Text style={styles.value}>{chamada.status}</Text>
 
-          {/* Endereço completo */}
+          {/* Endereço */}
           <Text style={styles.label}>Endereço:</Text>
 
           {endereco ? (
@@ -173,9 +196,17 @@ export default function DetalhesChamadaScreen() {
           </Text>
         </View>
 
+        {/* 🔥 BOTÃO FINALIZAR — SÓ ADMIN */}
+        {usuario?.role === "ADMIN" && (
+          <TouchableOpacity style={styles.finishButton} onPress={handleFinalizar}>
+            <Text style={styles.finishText}>CONCLUIR CHAMADO</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.cancelButton} onPress={handleCancelar}>
           <Text style={styles.cancelText}>CANCELAR CHAMADO</Text>
         </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );

@@ -74,4 +74,18 @@ export const DetalhesStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+  finishButton: {
+  marginTop: 15,
+  backgroundColor: "#2D9C3C", // VERDE
+  padding: 16,
+  borderRadius: 10,
+  alignItems: "center",
+},
+
+finishText: {
+  color: "#fff",
+  fontWeight: "700",
+  fontSize: 15,
+},
 });
