@@ -159,7 +159,7 @@ app.post("/api/chamadas", async (req, res) => {
                 horario,
                 data,
                 cepChamada,
-                status: status || "PENDENTE",
+                status: status || "EM ANDAMENTO",
             })
             .returning();
 

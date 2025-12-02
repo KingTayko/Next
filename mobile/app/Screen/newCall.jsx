@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 
 import { useUser } from "@clerk/clerk-expo"
 // Assumindo que você tem este arquivo de constantes
-const API_URL = "http://sua-api.com.br/api/v1"; // Usando o placeholder do SignUpScreen
+import { API_URL } from "../../constants/api";
 
 // FUNÇÃO DE FORMATAÇÃO: Aplica a máscara HH:MM
 const formatTimeInput = (input) => {
@@ -158,6 +158,11 @@ const NewCallScreen = () => {
 
   if (!clerkId) {
     Alert.alert('Erro', 'Usuário não autenticado.');
+    return;
+  }
+
+  if (time.length !== 5 || time.indexOf(':') !== 2) {
+    Alert.alert('Erro', 'Por favor, insira um horário válido no formato HH:MM.');
     return;
   }
 
