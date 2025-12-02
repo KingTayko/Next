@@ -86,20 +86,27 @@ app.put("/api/usuarios/:clerkId", async (req, res) => {
 
 // Excluir usuário
 app.delete("/api/usuarios/:clerkId", async (req, res) => {
-    try {
-        const { clerkId } = req.params;
+  try {
+    const { clerkId } = req.params;
 
-        await clerk.users.deleteUser(clerkId); // Deleta no Clerk
+    // Apagar no Clerk
+    const deletedUser = await clerk.users.deleteUser(clerkId);
 
-        await db.delete(usuarioTable)           // Deleta no banco
-            .where(eq(usuarioTable.clerkId, clerkId));
+    console.log("DELETADO DO CLERK:", deletedUser);
 
-        res.status(200).json({ message: "Usuário removido com sucesso" });
+    // Apagar no banco
+    await db.delete(usuarioTable)
+      .where(eq(usuarioTable.clerkId, clerkId));
 
-    } catch (error) {
-        console.log("Erro ao deletar usuário:", error);
-        res.status(500).json({ error: "Erro interno no servidor" });
-    }
+    return res.status(200).json({ message: "Usuário apagado com sucesso" });
+
+  } catch (error) {
+    console.log("Erro ao deletar usuário:", error);
+
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
 });
 
 
