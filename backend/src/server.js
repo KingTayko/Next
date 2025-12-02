@@ -87,6 +87,37 @@ app.delete("/api/usuarios/:clerkId", async (req, res) => {
     }
 });
 
+
+
+//teste
+// Buscar usuário por clerkId
+app.get("/api/usuarios/by-clerk/:clerkId", async (req, res) => {
+    try {
+        const { clerkId } = req.params;
+
+        if (!clerkId) {
+            return res.status(400).json({ error: "clerkId é obrigatório" });
+        }
+
+        const usuario = await db
+            .select()
+            .from(usuarioTable)
+            .where(eq(usuarioTable.clerkId, clerkId))
+            .limit(1);
+
+        if (usuario.length === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado" });
+        }
+
+        res.status(200).json(usuario[0]);
+
+    } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
+        res.status(500).json({ error: "Erro interno no servidor" });
+    }
+});
+
+
 // ------------------- ROTAS CHAMADA -------------------
 
 
