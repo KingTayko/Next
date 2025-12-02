@@ -20,7 +20,7 @@ import { API_URL } from "../../constants/api";
 
 const SignUpScreen = () => {
     const router = useRouter();
-    const { isLoaded, signUp } = useSignUp();
+    const { isLoaded, signUp, setActive } = useSignUp();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -64,6 +64,7 @@ const SignUpScreen = () => {
             const data = await response.json();
 
             console.log(data.id, data.nome);
+            
             Alert.alert("Success", "Usuario Cadastrado!");
 
            

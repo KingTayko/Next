@@ -58,7 +58,7 @@ app.post("/api/usuarios", async (req, res) => {
 app.put("/api/usuarios/:clerkId", async (req, res) => {
   try {
     const { clerkId } = req.params;
-    const { nome, cep, numCasa, complemento, email } = req.body;
+    const { nome, cep, numCasa, complemento, email, role } = req.body;
 
     const usuarioAtualizado = await db
       .update(usuarioTable)
@@ -68,6 +68,8 @@ app.put("/api/usuarios/:clerkId", async (req, res) => {
         numCasa, 
         complemento,
         email,
+        role,
+        dataAtualizacao: new Date(),
       })
       .where(eq(usuarioTable.clerkId, clerkId))
       .returning();
@@ -388,6 +390,36 @@ app.get("/api/chamadas/:id", async (req, res) => {
     res.status(500).json({ error: "Erro interno no servidor" });
   }
   });
+
+
+
+  //teste admin
+  app.get("/api/chamadas", async (req, res) => {
+  try {
+    const chamadas = await db
+      .select({
+        id: chamadaTable.id,
+        descChamada: chamadaTable.descChamada,
+        presencial: chamadaTable.presencial,
+        horario: chamadaTable.horario,
+        data: chamadaTable.data,
+        cepChamada: chamadaTable.cepChamada,
+        dataCriacao: chamadaTable.dataCriacao,
+        status: chamadaTable.status,
+        dataAtualizacao: chamadaTable.dataAtualizacao,
+        nomeUsuario: usuarioTable.nome,
+      })
+      .from(chamadaTable)
+      .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id));
+
+    res.status(200).json(chamadas);
+
+  } catch (error) {
+    console.log("Erro ao buscar todas as chamadas:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
+});
+
 
 app.listen(PORT, () => {
     console.log('Server is running on port: ', PORT);

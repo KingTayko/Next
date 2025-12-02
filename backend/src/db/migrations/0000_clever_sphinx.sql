@@ -15,6 +15,7 @@ CREATE TABLE "chamada" (
 CREATE TABLE "usuario" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"clerk_id" text NOT NULL,
+	"role" text DEFAULT 'USER' NOT NULL,
 	"nome" text NOT NULL,
 	"email" text NOT NULL,
 	"cep" text NOT NULL,

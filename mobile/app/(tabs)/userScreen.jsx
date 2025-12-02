@@ -82,6 +82,14 @@ const UserScreen = () => {
     }
   };
 
+  //signout
+  const handleSignOut = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Logout", style: "destructive", onPress: signOut },
+    ]);
+  };
+
   useEffect(() => {
     if (isLoaded) loadUserData();
   }, [isLoaded]);
@@ -143,7 +151,7 @@ const UserScreen = () => {
         </TouchableOpacity>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.btnLogout} onPress={() => signOut()}>
+        <TouchableOpacity style={styles.btnLogout} onPress={handleSignOut}>
           <Text style={styles.btnLogoutText}>Fazer Logout</Text>
         </TouchableOpacity>
       </ScrollView>
