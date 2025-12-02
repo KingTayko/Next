@@ -366,6 +366,29 @@ app.put("/api/usuario/update/:clerkId", async (req, res) => {
 });
 
 
+//teste
+// Buscar chamada específica por ID
+app.get("/api/chamadas/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const chamada = await db
+      .select()
+      .from(chamadaTable)
+      .where(eq(chamadaTable.id, Number(id)))
+      .limit(1);
+
+    if (chamada.length === 0) {
+      return res.status(404).json({ error: "Chamada não encontrada" });
+    }
+
+    res.status(200).json(chamada[0]);
+  } catch (error) {
+    console.log("Erro ao buscar chamada:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
+  });
+
 app.listen(PORT, () => {
     console.log('Server is running on port: ', PORT);
 });
