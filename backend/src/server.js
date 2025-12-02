@@ -9,10 +9,10 @@ import { eq, and } from 'drizzle-orm';
 
 import job from "./config/cron.js";
 
-import { Clerk } from "@clerk/clerk-sdk-node";
+import { users } from "@clerk/backend";
 import "dotenv/config";
 
-const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
+
 
 const app = express();
 const PORT = ENV.PORT || 5001;
@@ -93,23 +93,27 @@ app.delete("/api/usuarios/:clerkId", async (req, res) => {
   try {
     const { clerkId } = req.params;
 
-    // Apagar no Clerk
-    const deletedUser = await clerk.users.deleteUser(clerkId);
+    console.log("Tentando deletar do Clerk:", clerkId);
 
-    console.log("DELETADO DO CLERK:", deletedUser);
+    // 1. DELETAR NO CLERK
+    await users.deleteUser(clerkId, {
+      secretKey: process.env.CLERK_SECRET_KEY
+    });
 
-    // Apagar no banco
-    await db.delete(usuarioTable)
+    console.log("Usuário deletado no Clerk!");
+
+    // 2. DELETAR NO BANCO
+    await db
+      .delete(usuarioTable)
       .where(eq(usuarioTable.clerkId, clerkId));
 
-    return res.status(200).json({ message: "Usuário apagado com sucesso" });
+    return res.status(200).json({
+      message: "Usuário apagado no Clerk e no banco"
+    });
 
   } catch (error) {
     console.log("Erro ao deletar usuário:", error);
-
-    return res.status(500).json({
-      error: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 });
 

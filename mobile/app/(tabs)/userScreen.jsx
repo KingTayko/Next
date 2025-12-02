@@ -26,7 +26,7 @@ const UserScreen = () => {
   const [loading, setLoading] = useState(true);
   const [cepInfo, setCepInfo] = useState(null);
 
-  // ---- BUSCAR CEP ----
+  // Busca dados via CEP
   const loadCep = async (cepRaw) => {
     try {
       if (!cepRaw) return;
@@ -50,7 +50,7 @@ const UserScreen = () => {
     }
   };
 
-  // ---- CARREGAR DADOS DO USUÁRIO ----
+  // Carrega dados do usuário e dos chamados
   const loadUserData = async () => {
     if (!user) return;
 
@@ -61,7 +61,9 @@ const UserScreen = () => {
       const userData = await userResponse.json();
       setUsuario(userData);
 
-      if (userData?.cep) loadCep(userData.cep);
+      if (userData?.cep) {
+        loadCep(userData.cep);
+      }
 
       const chamadasResponse = await fetch(
         `${API_URL}/chamadas/usuario/ByClerk/${clerkId}`
@@ -76,7 +78,7 @@ const UserScreen = () => {
     }
   };
 
-  // ---- LOGOUT ----
+  // Logout simples
   const handleSignOut = () => {
     Alert.alert("Logout", "Tem certeza que deseja sair?", [
       { text: "Cancelar", style: "cancel" },
@@ -84,7 +86,7 @@ const UserScreen = () => {
     ]);
   };
 
-  // ---- EXCLUIR CONTA ----
+  // EXCLUIR CONTA (versão corrigida)
   const handleDeleteAccount = () => {
     Alert.alert(
       "Excluir Conta",
@@ -99,29 +101,28 @@ const UserScreen = () => {
             try {
               const clerkId = user.id;
 
-              // APAGA NO BACKEND (isso também apaga chamados por cascade)
+              // APAGA DIRETAMENTE PELO clerkId (correto)
               const res = await fetch(`${API_URL}/usuarios/${clerkId}`, {
                 method: "DELETE",
               });
 
               if (!res.ok) {
-                Alert.alert(
-                  "Erro",
-                  "Falha ao excluir sua conta no servidor. Tente novamente."
-                );
+                Alert.alert("Erro", "Falha ao excluir sua conta no servidor.");
                 return;
               }
 
-              // FAZ LOGOUT LOCAL
               await signOut();
 
-              Alert.alert("Conta excluída", "Sua conta foi removida com sucesso.");
+              Alert.alert(
+                "Conta excluída",
+                "Sua conta e todos os seus chamados foram removidos."
+              );
 
-              router.replace("/(auth)/sign-In");
+              router.replace("../../(auth)/sign-In"); // rota válida
 
             } catch (e) {
-              console.log("Erro ao excluir conta:", e);
-              Alert.alert("Erro", "Não foi possível excluir sua conta.");
+              console.log(e);
+              Alert.alert("Erro", "Erro ao excluir sua conta.");
             }
           },
         },
@@ -133,7 +134,6 @@ const UserScreen = () => {
     if (isLoaded) loadUserData();
   }, [isLoaded]);
 
-  // ---- CARD PADRÃO ----
   const criarCard = (label, valor, icon) => (
     <View style={styles.editCard}>
       <View style={styles.editLeft}>
