@@ -54,24 +54,31 @@ app.post("/api/usuarios", async (req, res) => {
     }
 });
 
-// Atualizar usuário
+// Atualizar usuário teste
 app.put("/api/usuarios/:clerkId", async (req, res) => {
-    try {
-        const { clerkId } = req.params;
-        const { nome, cep, numCasa, complemento } = req.body;
+  try {
+    const { clerkId } = req.params;
+    const { nome, cep, numCasa, complemento, email } = req.body;
 
-        const usuarioAtualizado = await db
-            .update(usuarioTable)
-            .set({ nome, cep, numCasa, complemento })
-            .where(eq(usuarioTable.clerkId, clerkId))
-            .returning();
+    const usuarioAtualizado = await db
+      .update(usuarioTable)
+      .set({
+        nome, 
+        cep, 
+        numCasa, 
+        complemento,
+        email,
+      })
+      .where(eq(usuarioTable.clerkId, clerkId))
+      .returning();
 
-        res.status(200).json(usuarioAtualizado[0]);
-    } catch (error) {
-        console.log("Erro ao atualizar usuário:", error);
-        res.status(500).json({ error: "Erro interno no servidor" });
-    }
+    res.status(200).json(usuarioAtualizado[0]);
+  } catch (error) {
+    console.log("Erro ao atualizar usuário:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
 });
+
 
 // Excluir usuário
 app.delete("/api/usuarios/:clerkId", async (req, res) => {
@@ -304,6 +311,59 @@ app.put("/api/chamadas/status/:id", async (req, res) => {
 });
 
 
+//teste
+// Atualizar dados do usuário + refletir CEP nos chamados
+app.put("/api/usuario/update/:clerkId", async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+    const { nome, cep } = req.body;
+
+    // Buscar usuário pelo clerkId
+    const usuario = await db
+      .select()
+      .from(usuarioTable)
+      .where(eq(usuarioTable.clerkId, clerkId))
+      .limit(1);
+
+    if (usuario.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
+
+    const user = usuario[0];
+
+    // Atualizar usuário
+    const usuarioAtualizado = await db
+      .update(usuarioTable)
+      .set({
+        nome,
+        cep,
+        dataAtualizacao: new Date(),
+      })
+      .where(eq(usuarioTable.id, user.id))
+      .returning();
+
+    // Atualizar chamados do usuário (somente o CEP)
+    const chamadosAtualizados = await db
+      .update(chamadaTable)
+      .set({
+        cep_chamada: cep,        // <<--- aqui corrigido
+        dataAtualizacao: new Date(),
+      })
+      .where(eq(chamadaTable.idUsuario, user.id))
+      .returning();
+
+    res.status(200).json({
+      message: "Usuário e chamados atualizados com sucesso",
+      usuario: usuarioAtualizado[0],
+      totalChamadosAtualizados: chamadosAtualizados.length,
+      chamados: chamadosAtualizados,
+    });
+
+  } catch (error) {
+    console.log("Erro ao atualizar usuário:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
+});
 
 
 app.listen(PORT, () => {

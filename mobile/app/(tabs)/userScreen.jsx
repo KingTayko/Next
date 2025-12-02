@@ -1,128 +1,149 @@
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { UserStyles as styles } from "../../assets/styles/user.styles";
+
 import { useRouter } from "expo-router";
-
-
-import { ChamadosAPI } from "../../services/chamadosAPI";
+import { useUser, useClerk } from "@clerk/clerk-expo";
 import { useState, useEffect } from "react";
 
 import { API_URL } from "../../constants/api";
-import { useClerk, useUser } from "@clerk/clerk-expo";
 
 const UserScreen = () => {
   const router = useRouter();
-  //logout
+  const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const { user } = useUser();
 
-
-
-  const [nome, setNome] = useState("");
-  const [senha, setSenha] = useState("");
-  const [cep, setCep] = useState("");
-
-
+  const [usuario, setUsuario] = useState(null);
   const [chamados, setChamados] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Informações retornadas pelo ViaCEP
+  const [cepInfo, setCepInfo] = useState(null);
 
-
-  const userId = 2;
-
-  const loadChamados = async () => {
+  // Função que busca detalhes do CEP no ViaCEP
+  const loadCep = async (cepRaw) => {
     try {
-      const data = await ChamadosAPI.getChamadosByUsuario(userId);
-      setChamados(data);
-    } catch (error) {
-      console.log("Erro ao carregar chamados:", error);
+      if (!cepRaw) return;
+
+      const cep = cepRaw.replace(/\D/g, "");
+
+      if (cep.length !== 8) return;
+
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (!data.erro) {
+        setCepInfo({
+          logradouro: data.logradouro,
+          bairro: data.bairro,
+          cidade: data.localidade,
+          estado: data.uf,
+        });
+      }
+    } catch (e) {
+      console.log("Erro ao buscar CEP:", e);
     }
   };
 
-  const handleToggleUpdate = async () => {
+  // Carrega dados do usuário e chamados
+  const loadUserData = async () => {
+    if (!user) return;
 
-    const response = await fetch(`${API_URL}/usuarios/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nome,
-        senha,
-        cep
-      }),
-    });
+    try {
+      const clerkId = user.id;
 
-    if (response.ok) {
-      const updateUser = await response.json();
-      console.log("Usuário atualizado:", updateUser);
+      const userResponse = await fetch(`${API_URL}/usuarios/by-clerk/${clerkId}`);
+      const userData = await userResponse.json();
+      setUsuario(userData);
 
-    } else {
-      console.log("Erro ao atualizar usuário", response.statusText);
+      // Busca rua/bairro/cidade/estado
+      if (userData?.cep) {
+        loadCep(userData.cep);
+      }
+
+      const chamadasResponse = await fetch(
+        `${API_URL}/chamadas/usuario/ByClerk/${clerkId}`
+      );
+      const chamadasData = await chamadasResponse.json();
+      setChamados(chamadasData);
+
+    } catch (e) {
+      Alert.alert("Erro", "Não foi possível carregar seus dados.");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadChamados();
-  }, []);
+    if (isLoaded) loadUserData();
+  }, [isLoaded]);
 
+  const criarCard = (label, valor, icon) => (
+    <View style={styles.editCard}>
+      <View style={styles.editLeft}>
+        <Ionicons name={icon} size={24} color="#888" />
+        <View>
+          <Text style={styles.editLabel}>{label}</Text>
+          <Text style={styles.editValue}>{valor ?? "—"}</Text>
+        </View>
+      </View>
+    </View>
+  );
 
-  //SignOut
-  const handleSignOut = () => {
-    Alert.alert("Logout", "Você tem certeza que deseja sair?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: signOut },
-    ]);
-  };
+  if (loading || !usuario) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={26} color="#1A1A1A" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Meu Perfil</Text>
-
-        <Ionicons name="ellipsis-vertical" size={22} color="#1A1A1A" />
-      </View>
-
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Card Chamados */}
+        {/* Chamados */}
         <View style={styles.cardChamados}>
           <Text style={styles.chamadosTitle}>Chamados</Text>
-          <Text style={styles.chamadosCount}>{chamados?.length ?? 0}</Text>
+          <Text style={styles.chamadosCount}>{chamados.length}</Text>
         </View>
 
-        {/* Linhas de Alteração */}
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Nome</Text>
-          <TouchableOpacity>
-            <Text style={styles.rowAction}>Alterar</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Dados do usuário */}
+        {criarCard("Nome", usuario.nome, "person-outline")}
+        {criarCard("Email", usuario.email, "mail-outline")}
+        {criarCard("CEP", usuario.cep, "location-outline")}
+        {criarCard("Número", usuario.numCasa, "home-outline")}
+        {criarCard("Complemento", usuario.complemento, "home-outline")}
 
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Senha</Text>
-          <TouchableOpacity onPress={<TextInput>
+        {/* Dados obtidos via CEP */}
+        {cepInfo && (
+          <>
+            {criarCard("Rua", cepInfo.logradouro, "navigate-outline")}
+            {criarCard("Bairro", cepInfo.bairro, "business-outline")}
+            {criarCard("Cidade", cepInfo.cidade, "map-outline")}
+            {criarCard("Estado", cepInfo.estado, "flag-outline")}
+          </>
+        )}
 
-          </TextInput>}>
-            <Text style={styles.rowAction}>Alterar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>CEP</Text>
-          <TouchableOpacity>
-            <Text style={styles.rowAction}>Alterar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Botão Excluir Conta */}
+        {/* Excluir Conta */}
         <TouchableOpacity style={styles.btnExcluir}>
           <Text style={styles.btnExcluirText}>Excluir Conta</Text>
         </TouchableOpacity>
 
-        {/* Botão Logout */}
-        <TouchableOpacity style={styles.btnLogout} onPress={handleSignOut}>
+        {/* Logout */}
+        <TouchableOpacity style={styles.btnLogout} onPress={() => signOut()}>
           <Text style={styles.btnLogoutText}>Fazer Logout</Text>
         </TouchableOpacity>
       </ScrollView>

@@ -37,7 +37,7 @@ export default function HomeScreen() {
       const userData = await userResponse.json();
       setUsuario(userData);
 
-      //Buscar chamados do usuário pelo ClerkId
+      // Buscar chamados do usuário pelo ClerkId
       const chamadasResponse = await fetch(
         `${API_URL}/chamadas/usuario/ByClerk/${clerkId}`
       );

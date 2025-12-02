@@ -47,29 +47,57 @@ export const UserStyles = StyleSheet.create({
     color: "#333",
   },
 
-  row: {
+  /* -------------------------------------- */
+  /*  ESTILO DO CARD IGUAL AO DE HORÁRIO   */
+  /* -------------------------------------- */
+  editCard: {
     backgroundColor: "#FFF",
-    borderRadius: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     elevation: 1,
   },
 
-  rowLabel: {
-    fontSize: 16,
-    color: "#333",
+  editLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
 
-  rowAction: {
-    fontSize: 15,
-    color: "#3B3BFF",
+  editLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 2,
+  },
+
+  editValue: {
+    fontSize: 17,
+    color: "#1A1A1A",
     fontWeight: "500",
   },
 
+  editValueInput: {
+    fontSize: 17,
+    color: "#1A1A1A",
+    fontWeight: "500",
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderBottomWidth: 1,
+    borderColor: "#CCC",
+    minWidth: 120,
+  },
+
+  alterarButtonText: {
+    color: "#3B3BFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  /* BOTÕES */
   btnExcluir: {
     backgroundColor: "#D63232",
     paddingVertical: 16,
