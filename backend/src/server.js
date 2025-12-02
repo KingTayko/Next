@@ -5,13 +5,9 @@ import { db } from "./config/db.js";
 
 import { usuarioTable, chamadaTable } from "./db/schema.js";
 
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import job from "./config/cron.js";
-
-import { users } from "@clerk/backend";
-import "dotenv/config";
-
 
 
 const app = express();
@@ -22,42 +18,44 @@ if (ENV.NODE_ENV === "production") job.start();
 app.use(express.json());
 
 
+
+
 //endpoints
 app.get("/api/health", (req, res) => {
-    res.status(200).json({ sucess: false })
+  res.status(200).json({ sucess: false })
 });
 
-console.log("CLERK SECRET KEY É:", process.env.CLERK_SECRET_KEY);
+
 
 
 // ------------------- ROTAS USUÁRIO -------------------
 
 // Criar usuário
 app.post("/api/usuarios", async (req, res) => {
-    try {
-        const { clerkId, nome, cep, numCasa, complemento, email } = req.body;
+  try {
+    const { clerkId, nome, cep, numCasa, complemento, email } = req.body;
 
-        if (!nome || !cep || !numCasa) {
-            return res.status(400).json({ error: "Campos obrigatórios faltando" });
-        }
-
-        const novoUsuario = await db
-            .insert(usuarioTable)
-            .values({
-                clerkId,
-                nome,
-                cep,
-                numCasa,
-                complemento,
-                email,
-            })
-            .returning();
-
-        res.status(201).json(novoUsuario[0]);
-    } catch (error) {
-        console.log("Erro ao criar usuário:", error);
-        res.status(500).json({ error: "Erro interno no servidor" });
+    if (!nome || !cep || !numCasa) {
+      return res.status(400).json({ error: "Campos obrigatórios faltando" });
     }
+
+    const novoUsuario = await db
+      .insert(usuarioTable)
+      .values({
+        clerkId,
+        nome,
+        cep,
+        numCasa,
+        complemento,
+        email,
+      })
+      .returning();
+
+    res.status(201).json(novoUsuario[0]);
+  } catch (error) {
+    console.log("Erro ao criar usuário:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
 });
 
 // Atualizar usuário teste
@@ -69,9 +67,9 @@ app.put("/api/usuarios/:clerkId", async (req, res) => {
     const usuarioAtualizado = await db
       .update(usuarioTable)
       .set({
-        nome, 
-        cep, 
-        numCasa, 
+        nome,
+        cep,
+        numCasa,
         complemento,
         email,
         role,
@@ -88,32 +86,33 @@ app.put("/api/usuarios/:clerkId", async (req, res) => {
 });
 
 
-// Excluir usuário
-app.delete("/api/usuarios/:clerkId", async (req, res) => {
+
+// Excluir usuário + todos os chamados
+app.delete("/api/usuario/delete/:clerkId", async (req, res) => {
   try {
     const { clerkId } = req.params;
 
-    console.log("Tentando deletar do Clerk:", clerkId);
+    // Buscar usuário pelo clerkId
+    const usuario = await db
+      .select()
+      .from(usuarioTable)
+      .where(eq(usuarioTable.clerkId, clerkId))
+      .limit(1);
 
-    // 1. DELETAR NO CLERK
-    await users.deleteUser(clerkId, {
-      secretKey: process.env.CLERK_SECRET_KEY
-    });
+    if (usuario.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
 
-    console.log("Usuário deletado no Clerk!");
+    const user = usuario[0];
 
-    // 2. DELETAR NO BANCO
-    await db
-      .delete(usuarioTable)
-      .where(eq(usuarioTable.clerkId, clerkId));
+    // Deleta o usuário → graças ao cascade, os chamados também são deletados
+    await db.delete(usuarioTable).where(eq(usuarioTable.id, user.id));
 
-    return res.status(200).json({
-      message: "Usuário apagado no Clerk e no banco"
-    });
+    return res.status(200).json({ message: "Conta excluída com sucesso" });
 
   } catch (error) {
-    console.log("Erro ao deletar usuário:", error);
-    return res.status(500).json({ error: error.message });
+    console.log("Erro ao excluir conta:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
   }
 });
 
@@ -124,29 +123,29 @@ app.delete("/api/usuarios/:clerkId", async (req, res) => {
 //teste
 // Buscar usuário por clerkId
 app.get("/api/usuarios/by-clerk/:clerkId", async (req, res) => {
-    try {
-        const { clerkId } = req.params;
+  try {
+    const { clerkId } = req.params;
 
-        if (!clerkId) {
-            return res.status(400).json({ error: "clerkId é obrigatório" });
-        }
-
-        const usuario = await db
-            .select()
-            .from(usuarioTable)
-            .where(eq(usuarioTable.clerkId, clerkId))
-            .limit(1);
-
-        if (usuario.length === 0) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
-        }
-
-        res.status(200).json(usuario[0]);
-
-    } catch (error) {
-        console.error("Erro ao buscar usuário:", error);
-        res.status(500).json({ error: "Erro interno no servidor" });
+    if (!clerkId) {
+      return res.status(400).json({ error: "clerkId é obrigatório" });
     }
+
+    const usuario = await db
+      .select()
+      .from(usuarioTable)
+      .where(eq(usuarioTable.clerkId, clerkId))
+      .limit(1);
+
+    if (usuario.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
+
+    res.status(200).json(usuario[0]);
+
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
 });
 
 
@@ -232,121 +231,121 @@ app.post("/api/chamadas", async (req, res) => {
 
 // Buscar chamadas de um usuário específico pelo NOME
 app.get("/api/chamadas/usuario/nome/:nomeUsuario", async (req, res) => {
-    try {
-        const { nomeUsuario } = req.params;
+  try {
+    const { nomeUsuario } = req.params;
 
-        if (!nomeUsuario) {
-            return res.status(400).json({ error: "Nome do usuário é obrigatório" });
-        }
-
-        const chamadas = await db
-            .select({
-                id: chamadaTable.id,
-                descChamada: chamadaTable.descChamada,
-                presencial: chamadaTable.presencial,
-                horario: chamadaTable.horario,
-                data: chamadaTable.data,
-                cepChamada: chamadaTable.cepChamada,
-                dataCriacao: chamadaTable.dataCriacao,
-                status: chamadaTable.status,
-                dataAtualizacao: chamadaTable.dataAtualizacao,
-                nomeUsuario: usuarioTable.nome,
-            })
-            .from(chamadaTable)
-            .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
-            .where(eq(usuarioTable.nome, nomeUsuario));
-
-        res.status(200).json(chamadas);
-    } catch (error) {
-        console.log("Erro ao buscar chamadas:", error);
-        res.status(500).json({ error: "Erro interno" });
+    if (!nomeUsuario) {
+      return res.status(400).json({ error: "Nome do usuário é obrigatório" });
     }
+
+    const chamadas = await db
+      .select({
+        id: chamadaTable.id,
+        descChamada: chamadaTable.descChamada,
+        presencial: chamadaTable.presencial,
+        horario: chamadaTable.horario,
+        data: chamadaTable.data,
+        cepChamada: chamadaTable.cepChamada,
+        dataCriacao: chamadaTable.dataCriacao,
+        status: chamadaTable.status,
+        dataAtualizacao: chamadaTable.dataAtualizacao,
+        nomeUsuario: usuarioTable.nome,
+      })
+      .from(chamadaTable)
+      .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
+      .where(eq(usuarioTable.nome, nomeUsuario));
+
+    res.status(200).json(chamadas);
+  } catch (error) {
+    console.log("Erro ao buscar chamadas:", error);
+    res.status(500).json({ error: "Erro interno" });
+  }
 });
 
 // Buscar chamada do usuário por ID do banco
 app.get("/api/chamadas/usuario/id/:idUsuario", async (req, res) => {
-    try {
-        const { idUsuario } = req.params;
+  try {
+    const { idUsuario } = req.params;
 
-        if (!idUsuario) {
-            return res.status(400).json({ error: "ID do usuário é obrigatório" });
-        }
-
-        const chamadas = await db
-            .select({
-                id: chamadaTable.id,
-                descChamada: chamadaTable.descChamada,
-                presencial: chamadaTable.presencial,
-                horario: chamadaTable.horario,
-                data: chamadaTable.data,
-                cepChamada: chamadaTable.cepChamada,
-                dataCriacao: chamadaTable.dataCriacao,
-                status: chamadaTable.status,
-                dataAtualizacao: chamadaTable.dataAtualizacao,
-                nomeUsuario: usuarioTable.nome,
-            })
-            .from(chamadaTable)
-            .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
-            .where(eq(usuarioTable.id, Number(idUsuario)));
-
-        res.status(200).json(chamadas);
-    } catch (error) {
-        console.log("Erro ao buscar chamadas por ID:", error);
-        res.status(500).json({ error: "Erro interno" });
+    if (!idUsuario) {
+      return res.status(400).json({ error: "ID do usuário é obrigatório" });
     }
+
+    const chamadas = await db
+      .select({
+        id: chamadaTable.id,
+        descChamada: chamadaTable.descChamada,
+        presencial: chamadaTable.presencial,
+        horario: chamadaTable.horario,
+        data: chamadaTable.data,
+        cepChamada: chamadaTable.cepChamada,
+        dataCriacao: chamadaTable.dataCriacao,
+        status: chamadaTable.status,
+        dataAtualizacao: chamadaTable.dataAtualizacao,
+        nomeUsuario: usuarioTable.nome,
+      })
+      .from(chamadaTable)
+      .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
+      .where(eq(usuarioTable.id, Number(idUsuario)));
+
+    res.status(200).json(chamadas);
+  } catch (error) {
+    console.log("Erro ao buscar chamadas por ID:", error);
+    res.status(500).json({ error: "Erro interno" });
+  }
 });
 
 //busca e mostra chamadas do usuario por clerkId
 app.get("/api/chamadas/usuario/ByClerk/:clerkId", async (req, res) => {
-    try {
-        const { clerkId } = req.params;
+  try {
+    const { clerkId } = req.params;
 
-        if (!clerkId) {
-            return res.status(400).json({ error: "ID do usuário é obrigatório" });
-        }
-
-
-        const chamadas = await db
-            .select({
-                id: chamadaTable.id,
-                descChamada: chamadaTable.descChamada,
-                presencial: chamadaTable.presencial,
-                horario: chamadaTable.horario,
-                data: chamadaTable.data,
-                cepChamada: chamadaTable.cepChamada,
-                dataCriacao: chamadaTable.dataCriacao,
-                status: chamadaTable.status,
-                dataAtualizacao: chamadaTable.dataAtualizacao,
-                nomeUsuario: usuarioTable.nome,
-            })
-            .from(chamadaTable)
-            .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
-            .where(eq(usuarioTable.clerkId, clerkId));
-
-        res.status(200).json(chamadas);
-    } catch (error) {
-        console.log("Erro ao buscar chamadas por ID:", error);
-        res.status(500).json({ error: "Erro interno" });
+    if (!clerkId) {
+      return res.status(400).json({ error: "ID do usuário é obrigatório" });
     }
+
+
+    const chamadas = await db
+      .select({
+        id: chamadaTable.id,
+        descChamada: chamadaTable.descChamada,
+        presencial: chamadaTable.presencial,
+        horario: chamadaTable.horario,
+        data: chamadaTable.data,
+        cepChamada: chamadaTable.cepChamada,
+        dataCriacao: chamadaTable.dataCriacao,
+        status: chamadaTable.status,
+        dataAtualizacao: chamadaTable.dataAtualizacao,
+        nomeUsuario: usuarioTable.nome,
+      })
+      .from(chamadaTable)
+      .leftJoin(usuarioTable, eq(chamadaTable.idUsuario, usuarioTable.id))
+      .where(eq(usuarioTable.clerkId, clerkId));
+
+    res.status(200).json(chamadas);
+  } catch (error) {
+    console.log("Erro ao buscar chamadas por ID:", error);
+    res.status(500).json({ error: "Erro interno" });
+  }
 });
 
 // Atualizar Status por id da Chamada
 app.put("/api/chamadas/status/:id", async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-        const chamadaCancelada = await db
-            .update(chamadaTable)
-            .set({ status: status || "Cancelada", dataAtualizacao: new Date() })
-            .where(eq(chamadaTable.id, Number(id)))
-            .returning();
+    const chamadaCancelada = await db
+      .update(chamadaTable)
+      .set({ status: status || "Cancelada", dataAtualizacao: new Date() })
+      .where(eq(chamadaTable.id, Number(id)))
+      .returning();
 
-        res.status(200).json(chamadaCancelada[0]);
-    } catch (error) {
-        console.log("Erro ao cancelar chamada:", error);
-        res.status(500).json({ error: "Erro interno" });
-    }
+    res.status(200).json(chamadaCancelada[0]);
+  } catch (error) {
+    console.log("Erro ao cancelar chamada:", error);
+    res.status(500).json({ error: "Erro interno" });
+  }
 });
 
 
@@ -426,12 +425,12 @@ app.get("/api/chamadas/:id", async (req, res) => {
     console.log("Erro ao buscar chamada:", error);
     res.status(500).json({ error: "Erro interno no servidor" });
   }
-  });
+});
 
 
 
-  //mostrar todos os chamados de todos os usuarios admin
-  app.get("/api/chamadas", async (req, res) => {
+//mostrar todos os chamados de todos os usuarios admin
+app.get("/api/chamadas", async (req, res) => {
   try {
     const chamadas = await db
       .select({
@@ -485,5 +484,5 @@ app.get("/api/chamadas/check", async (req, res) => {
 
 
 app.listen(PORT, () => {
-    console.log('Server is running on port: ', PORT);
+  console.log('Server is running on port: ', PORT);
 });
