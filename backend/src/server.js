@@ -139,44 +139,58 @@ app.get("/api/usuarios/by-clerk/:clerkId", async (req, res) => {
 
 // Criar chamada
 app.post("/api/chamadas", async (req, res) => {
-    try {
-        const { descChamada, presencial, horario, data, cepChamada, status, idUsuario, nomeUsuario } = req.body;
+  try {
+    const { descChamada, presencial, horario, data, cepChamada, status, idUsuario, nomeUsuario } = req.body;
 
-        if (!idUsuario || !horario || !data) {
-            return res.status(400).json({ error: "Campos obrigatórios faltando" });
-        }
-
-        //Verificar se a usuario
-        const usuario = await db
-            .select()
-            .from(usuarioTable)
-            .where(eq(usuarioTable.id, idUsuario));
-
-        if (usuario.length === 0) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
-        }
-
-        const user = usuario[0];
-
-        const novaChamada = await db
-            .insert(chamadaTable)
-            .values({
-                idUsuario: user.id,
-                nomeUsuario: user.nome,
-                descChamada,
-                presencial,
-                horario,
-                data,
-                cepChamada,
-                status: status || "EM ANDAMENTO",
-            })
-            .returning();
-
-        res.status(201).json(novaChamada[0]);
-    } catch (error) {
-        console.log("Erro ao criar chamada:", error);
-        res.status(500).json({ error: "Erro interno" });
+    if (!idUsuario || !horario || !data) {
+      return res.status(400).json({ error: "Campos obrigatórios faltando" });
     }
+
+    // Verifica se o usuário existe
+    const usuario = await db
+      .select()
+      .from(usuarioTable)
+      .where(eq(usuarioTable.id, idUsuario));
+
+    if (usuario.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
+
+    //  **VERIFICAÇÃO DE CONFLITO AQUI**  
+    const conflito = await db
+      .select()
+      .from(chamadaTable)
+      .where(
+        and(
+          eq(chamadaTable.data, data),
+          eq(chamadaTable.horario, horario)
+        )
+      );
+
+    if (conflito.length > 0) {
+      return res.status(409).json({ error: "Já existe um chamado nesse dia e horário" });
+    }
+
+    // 👉 Se não houver conflito, cria a chamada
+    const novaChamada = await db
+      .insert(chamadaTable)
+      .values({
+        idUsuario,
+        nomeUsuario,
+        descChamada,
+        presencial,
+        horario,
+        data,
+        cepChamada,
+        status: status || "EM ANDAMENTO",
+      })
+      .returning();
+
+    res.status(201).json(novaChamada[0]);
+  } catch (error) {
+    console.log("Erro ao criar chamada:", error);
+    res.status(500).json({ error: "Erro interno" });
+  }
 });
 
 
