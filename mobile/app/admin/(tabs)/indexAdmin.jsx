@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -38,7 +37,14 @@ export default function IndexAdmin() {
       const userData = await userRes.json();
       setUsuario(userData);
 
-      // Buscar todas as chamadas (admin vê tudo!)
+      // Se não for admin, redireciona
+      if (userData?.role !== "ADMIN") {
+        Alert.alert("Acesso negado", "Você não é administrador.");
+        router.replace("/home");
+        return;
+      }
+
+      // Buscar TODAS as chamadas
       const chamadasRes = await fetch(`${API_URL}/chamadas`);
       const chamadasData = await chamadasRes.json();
       setChamadas(chamadasData);
