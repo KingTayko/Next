@@ -5,7 +5,7 @@ import { db } from "./config/db.js";
 
 import { usuarioTable, chamadaTable } from "./db/schema.js";
 
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 import job from "./config/cron.js";
 
@@ -393,7 +393,7 @@ app.get("/api/chamadas/:id", async (req, res) => {
 
 
 
-  //teste admin
+  //mostrar todos os chamados de todos os usuarios admin
   app.get("/api/chamadas", async (req, res) => {
   try {
     const chamadas = await db
@@ -416,6 +416,32 @@ app.get("/api/chamadas/:id", async (req, res) => {
 
   } catch (error) {
     console.log("Erro ao buscar todas as chamadas:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
+});
+
+//verificar se ja existe data e horario salvo
+app.get("/api/chamadas/check", async (req, res) => {
+  try {
+    const { data, horario } = req.query;
+
+    if (!data || !horario) {
+      return res.status(400).json({ error: "Data e horário são obrigatórios" });
+    }
+
+    const chamadas = await db
+      .select()
+      .from(chamadaTable)
+      .where(
+        and(
+          eq(chamadaTable.data, data),
+          eq(chamadaTable.horario, horario)
+        )
+      );
+
+    return res.json({ exists: chamadas.length > 0 });
+  } catch (error) {
+    console.log("Erro ao verificar chamada:", error);
     res.status(500).json({ error: "Erro interno no servidor" });
   }
 });
