@@ -63,7 +63,14 @@ const adminScreen = () => {
   const handleSignOut = () => {
     Alert.alert("Sair", "Deseja realmente fazer logout?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: signOut },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          router.replace("/"); // força retornar ao Index
+        },
+      },
     ]);
   };
 

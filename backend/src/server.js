@@ -123,7 +123,6 @@ app.delete("/api/usuario/delete/:clerkId", async (req, res) => {
 
 
 
-//teste
 // Buscar usuário por clerkId
 app.get("/api/usuarios/by-clerk/:clerkId", async (req, res) => {
   try {
@@ -196,7 +195,7 @@ app.post("/api/chamadas", async (req, res) => {
       return res.status(409).json({ error: "Já existe um chamado nesse dia e horário" });
     }
 
-    // 👉 Se não houver conflito, cria a chamada
+    // Se não houver conflito, cria a chamada
     const novaChamada = await db
       .insert(chamadaTable)
       .values({
@@ -352,7 +351,7 @@ app.put("/api/chamadas/status/:id", async (req, res) => {
 });
 
 
-//teste
+
 // Atualizar dados do usuário + refletir CEP nos chamados
 app.put("/api/usuario/update/:clerkId", async (req, res) => {
   try {
@@ -461,7 +460,7 @@ app.get("/api/chamadas/search", async (req, res) => {
 });
 
 
-//teste
+
 // Buscar chamada específica por ID
 app.get("/api/chamadas/:id", async (req, res) => {
   try {

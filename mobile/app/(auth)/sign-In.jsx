@@ -39,6 +39,7 @@ const SignInScreen = () => {
 
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
+        router.replace("/");
       } else {
         Alert.alert("Error", "Login falhou. Tente novamente.");
       }
